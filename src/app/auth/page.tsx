@@ -50,8 +50,20 @@ export default function AuthPage() {
         }
       }
     } catch (error: any) {
-      console.error("Erro na autenticação:", error);
-      setError(error.message || "Erro ao processar autenticação");
+      // Tratamento de erros mais amigável
+      let errorMessage = "Erro ao processar autenticação";
+      
+      if (error.message?.includes("Invalid login credentials")) {
+        errorMessage = "Email ou senha incorretos. Por favor, tente novamente.";
+      } else if (error.message?.includes("Email not confirmed")) {
+        errorMessage = "Por favor, confirme seu email antes de fazer login.";
+      } else if (error.message?.includes("User already registered")) {
+        errorMessage = "Este email já está cadastrado. Tente fazer login.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -147,10 +159,13 @@ export default function AuthPage() {
                   minLength={6}
                 />
               </div>
+              {mode === "signup" && (
+                <p className="text-xs text-white/40 mt-1">Mínimo de 6 caracteres</p>
+              )}
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm">
                 {error}
               </div>
             )}

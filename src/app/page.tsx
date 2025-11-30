@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { supabase, type Document } from "@/lib/supabase";
 import { generateLaudo, generateReceita, generateRelatorio } from "@/lib/openai";
+import SupportChat from "@/components/custom/SupportChat";
 
 type TabType = "dashboard" | "laudos" | "receitas" | "relatorios";
 type ModalType = "laudo" | "receita" | "relatorio" | null;
@@ -87,28 +88,38 @@ export default function Home() {
 
   // Carregar usuário e documentos
   useEffect(() => {
-    checkUser();
-    loadDocuments();
+    if (supabase) {
+      checkUser();
+      loadDocuments();
 
-    // Listener para mudanças de autenticação
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadDocuments();
-      }
-    });
+      // Listener para mudanças de autenticação
+      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          loadDocuments();
+        }
+      });
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+      return () => {
+        authListener.subscription.unsubscribe();
+      };
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const checkUser = async () => {
+    if (!supabase) return;
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
   };
 
   const loadDocuments = async () => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -128,7 +139,6 @@ export default function Home() {
       setDocuments(data || []);
     } catch (error: any) {
       console.error('Erro ao carregar documentos:', error);
-      // Exibir mensagem de erro amigável
       const errorMessage = error?.message || 'Erro desconhecido ao carregar documentos';
       console.error('Detalhes do erro:', errorMessage);
     } finally {
@@ -137,6 +147,7 @@ export default function Home() {
   };
 
   const handleSignOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     setUser(null);
     setDocuments([]);
@@ -206,6 +217,11 @@ export default function Home() {
       return;
     }
 
+    if (!supabase) {
+      alert('Supabase não configurado. Configure as variáveis de ambiente.');
+      return;
+    }
+
     try {
       setGenerating(true);
       
@@ -223,16 +239,15 @@ export default function Home() {
           type: 'laudo',
           subtype: modalSubtype,
           patient_name: laudoForm.paciente,
-          patient_info: {
-            idade: laudoForm.idade,
-            sexo: laudoForm.sexo,
+          patient_age: parseInt(laudoForm.idade),
+          patient_sex: laudoForm.sexo,
+          content,
+          metadata: {
             queixaPrincipal: laudoForm.queixaPrincipal,
             historico: laudoForm.historico,
             exame: laudoForm.exame,
             observacoes: laudoForm.observacoes
-          },
-          content,
-          status: 'completed'
+          }
         })
         .select()
         .single();
@@ -246,7 +261,7 @@ export default function Home() {
     } catch (error: any) {
       console.error('Erro ao gerar laudo:', error);
       if (error.message?.includes('API key')) {
-        alert('Configure sua API Key da OpenAI nas variáveis de ambiente (NEXT_PUBLIC_OPENAI_API_KEY)');
+        alert('Configure sua API Key da OpenAI nas variáveis de ambiente (OPENAI_API_KEY)');
       } else {
         alert(t('form.error'));
       }
@@ -258,6 +273,11 @@ export default function Home() {
   const handleGenerateReceita = async () => {
     if (!user || !receitaForm.paciente || !receitaForm.idade || !receitaForm.diagnostico || !receitaForm.medicamentos) {
       alert(t('form.required'));
+      return;
+    }
+
+    if (!supabase) {
+      alert('Supabase não configurado. Configure as variáveis de ambiente.');
       return;
     }
 
@@ -278,17 +298,16 @@ export default function Home() {
           type: 'receita',
           subtype: modalSubtype,
           patient_name: receitaForm.paciente,
-          patient_info: {
-            idade: receitaForm.idade,
-            sexo: receitaForm.sexo,
+          patient_age: parseInt(receitaForm.idade),
+          patient_sex: receitaForm.sexo,
+          content,
+          metadata: {
             diagnostico: receitaForm.diagnostico,
             medicamentos: receitaForm.medicamentos,
             posologia: receitaForm.posologia,
             duracao: receitaForm.duracao,
             observacoes: receitaForm.observacoes
-          },
-          content,
-          status: 'completed'
+          }
         })
         .select()
         .single();
@@ -302,7 +321,7 @@ export default function Home() {
     } catch (error: any) {
       console.error('Erro ao gerar receita:', error);
       if (error.message?.includes('API key')) {
-        alert('Configure sua API Key da OpenAI nas variáveis de ambiente (NEXT_PUBLIC_OPENAI_API_KEY)');
+        alert('Configure sua API Key da OpenAI nas variáveis de ambiente (OPENAI_API_KEY)');
       } else {
         alert(t('form.error'));
       }
@@ -314,6 +333,11 @@ export default function Home() {
   const handleGenerateRelatorio = async () => {
     if (!user || !relatorioForm.paciente || !relatorioForm.idade || !relatorioForm.evolucao || !relatorioForm.procedimentos) {
       alert(t('form.required'));
+      return;
+    }
+
+    if (!supabase) {
+      alert('Supabase não configurado. Configure as variáveis de ambiente.');
       return;
     }
 
@@ -334,18 +358,17 @@ export default function Home() {
           type: 'relatorio',
           subtype: modalSubtype,
           patient_name: relatorioForm.paciente,
-          patient_info: {
-            idade: relatorioForm.idade,
-            sexo: relatorioForm.sexo,
+          patient_age: parseInt(relatorioForm.idade),
+          patient_sex: relatorioForm.sexo,
+          content,
+          metadata: {
             motivoInternacao: relatorioForm.motivoInternacao,
             evolucao: relatorioForm.evolucao,
             procedimentos: relatorioForm.procedimentos,
             condicaoAlta: relatorioForm.condicaoAlta,
             recomendacoes: relatorioForm.recomendacoes,
             observacoes: relatorioForm.observacoes
-          },
-          content,
-          status: 'completed'
+          }
         })
         .select()
         .single();
@@ -359,7 +382,7 @@ export default function Home() {
     } catch (error: any) {
       console.error('Erro ao gerar relatório:', error);
       if (error.message?.includes('API key')) {
-        alert('Configure sua API Key da OpenAI nas variáveis de ambiente (NEXT_PUBLIC_OPENAI_API_KEY)');
+        alert('Configure sua API Key da OpenAI nas variáveis de ambiente (OPENAI_API_KEY)');
       } else {
         alert(t('form.error'));
       }
@@ -406,7 +429,7 @@ export default function Home() {
     type: doc.type === 'laudo' ? t('nav.reports') : doc.type === 'receita' ? t('nav.prescriptions') : t('nav.medical-reports'),
     patient: doc.patient_name,
     date: formatDate(doc.created_at),
-    status: doc.status as "completed" | "pending",
+    status: "completed" as "completed" | "pending",
     document: doc
   }));
 
@@ -547,7 +570,18 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {!user && (
+        {!supabase && (
+          <div className="mb-8 bg-gradient-to-r from-[#FF6F00]/10 to-[#FFD600]/10 border border-[#FF6F00]/20 rounded-2xl p-6 text-center">
+            <p className="text-white/80 mb-4">
+              Configure as variáveis de ambiente do Supabase para usar todas as funcionalidades.
+            </p>
+            <p className="text-white/60 text-sm">
+              Clique no banner laranja acima para configurar.
+            </p>
+          </div>
+        )}
+
+        {!user && supabase && (
           <div className="mb-8 bg-gradient-to-r from-[#FF6F00]/10 to-[#FFD600]/10 border border-[#FF6F00]/20 rounded-2xl p-6 text-center">
             <p className="text-white/80 mb-4">
               {t('auth.login-required')}
@@ -598,7 +632,7 @@ export default function Home() {
                   <button
                     key={index}
                     onClick={action.onClick}
-                    disabled={!user}
+                    disabled={!user || !supabase}
                     className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#FF6F00]/50 rounded-xl p-6 transition-all duration-300 hover:scale-[1.02] text-left overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${action.color} opacity-0 group-hover:opacity-10 transition-opacity`}></div>
@@ -680,7 +714,7 @@ export default function Home() {
               </div>
               <button 
                 onClick={() => openModal('laudo', t('reports.xray-chest'))}
-                disabled={!user}
+                disabled={!user || !supabase}
                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#FF6F00] to-[#FFD600] rounded-xl font-semibold text-[#0D0D0D] hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-5 h-5" />
@@ -700,7 +734,7 @@ export default function Home() {
                 <button
                   key={index}
                   onClick={() => openModal('laudo', type.value)}
-                  disabled={!user}
+                  disabled={!user || !supabase}
                   className="group bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-[#FF6F00]/50 rounded-2xl p-6 text-left transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-start justify-between mb-4">
@@ -753,7 +787,7 @@ export default function Home() {
               </div>
               <button 
                 onClick={() => openModal('receita', t('prescriptions.simple'))}
-                disabled={!user}
+                disabled={!user || !supabase}
                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#FF6F00] to-[#FFD600] rounded-xl font-semibold text-[#0D0D0D] hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-5 h-5" />
@@ -771,7 +805,7 @@ export default function Home() {
                 <button
                   key={index}
                   onClick={() => openModal('receita', type.value)}
-                  disabled={!user}
+                  disabled={!user || !supabase}
                   className="group bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-[#FF6F00]/50 rounded-2xl p-6 text-left transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-start justify-between mb-4">
@@ -824,7 +858,7 @@ export default function Home() {
               </div>
               <button 
                 onClick={() => openModal('relatorio', t('medical-reports.evolution'))}
-                disabled={!user}
+                disabled={!user || !supabase}
                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#FF6F00] to-[#FFD600] rounded-xl font-semibold text-[#0D0D0D] hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-5 h-5" />
@@ -844,7 +878,7 @@ export default function Home() {
                 <button
                   key={index}
                   onClick={() => openModal('relatorio', type.value)}
-                  disabled={!user}
+                  disabled={!user || !supabase}
                   className="group bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-[#FF6F00]/50 rounded-2xl p-6 text-left transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-start justify-between mb-4">
@@ -1332,6 +1366,9 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Assistente de Suporte AI */}
+      <SupportChat />
     </div>
   );
 }

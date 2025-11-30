@@ -1,18 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    'Variáveis de ambiente do Supabase não configuradas. ' +
-    'Certifique-se de que NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY estão definidas.'
-  );
-}
+// Cliente Supabase com fallback para evitar erros
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Types
+// Types adaptados à estrutura real do banco
 export interface Profile {
   id: string;
   email: string;
@@ -29,9 +25,10 @@ export interface Document {
   type: 'laudo' | 'receita' | 'relatorio';
   subtype: string;
   patient_name: string;
-  patient_info: any;
-  content: string | null;
-  status: 'completed' | 'pending' | 'draft';
+  patient_age: number;
+  patient_sex: string;
+  content: string;
+  metadata: any;
   created_at: string;
   updated_at: string;
 }

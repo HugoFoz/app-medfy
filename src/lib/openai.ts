@@ -1,152 +1,125 @@
-import OpenAI from 'openai';
+// Funções para gerar documentos médicos usando OpenAI via API Routes
 
-// Cliente OpenAI
-export const openai = new OpenAI({
-  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY || '',
-  dangerouslyAllowBrowser: true // Necessário para uso no cliente
-});
+export async function generateLaudo(data: any): Promise<string> {
+  try {
+    const response = await fetch('/api/generate-laudo', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        examType: data.tipo,
+        patientInfo: `${data.paciente}, ${data.idade} anos, sexo ${data.sexo}`,
+        findings: `
+          Queixa principal: ${data.queixaPrincipal}
+          Histórico: ${data.historico || 'Não informado'}
+          Exame: ${data.exame || 'Não especificado'}
+          Observações: ${data.observacoes || 'Nenhuma'}
+        `
+      }),
+    });
 
-// Função para gerar laudo médico
-export async function generateLaudo(data: {
-  tipo: string;
-  paciente: string;
-  idade: string;
-  sexo: string;
-  queixaPrincipal: string;
-  historico: string;
-  exame: string;
-  observacoes?: string;
-}) {
-  const prompt = `Você é um médico especialista gerando um laudo médico profissional.
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erro ao gerar laudo');
+    }
 
-DADOS DO PACIENTE:
-- Nome: ${data.paciente}
-- Idade: ${data.idade} anos
-- Sexo: ${data.sexo}
-
-TIPO DE LAUDO: ${data.tipo}
-
-INFORMAÇÕES CLÍNICAS:
-- Queixa Principal: ${data.queixaPrincipal}
-- Histórico: ${data.historico}
-- Exame Realizado: ${data.exame}
-${data.observacoes ? `- Observações: ${data.observacoes}` : ''}
-
-Gere um laudo médico completo, profissional e detalhado seguindo o padrão médico brasileiro. Inclua:
-1. Identificação do paciente
-2. Indicação clínica
-3. Técnica utilizada
-4. Descrição dos achados
-5. Impressão diagnóstica
-6. Conclusão
-
-Use linguagem técnica apropriada e seja objetivo.`;
-
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.7,
-    max_tokens: 1500,
-  });
-
-  return response.choices[0].message.content || '';
+    const result = await response.json();
+    return result.laudo;
+  } catch (error: any) {
+    console.error('Erro ao gerar laudo:', error);
+    throw new Error(error.message || 'Erro ao gerar laudo médico');
+  }
 }
 
-// Função para gerar receita médica
-export async function generateReceita(data: {
-  tipo: string;
-  paciente: string;
-  idade: string;
-  sexo: string;
-  diagnostico: string;
-  medicamentos: string;
-  posologia: string;
-  duracao: string;
-  observacoes?: string;
-}) {
-  const prompt = `Você é um médico gerando uma receita médica profissional.
+export async function generateReceita(data: any): Promise<string> {
+  try {
+    const response = await fetch('/api/generate-receita', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        patientInfo: `${data.paciente}, ${data.idade} anos, sexo ${data.sexo}`,
+        diagnosis: data.diagnostico,
+        symptoms: `
+          Medicamentos: ${data.medicamentos}
+          Posologia: ${data.posologia || 'Conforme orientação médica'}
+          Duração: ${data.duracao || 'Uso contínuo'}
+          Observações: ${data.observacoes || 'Nenhuma'}
+        `
+      }),
+    });
 
-DADOS DO PACIENTE:
-- Nome: ${data.paciente}
-- Idade: ${data.idade} anos
-- Sexo: ${data.sexo}
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erro ao gerar receita');
+    }
 
-TIPO DE RECEITA: ${data.tipo}
-
-INFORMAÇÕES CLÍNICAS:
-- Diagnóstico: ${data.diagnostico}
-- Medicamentos: ${data.medicamentos}
-- Posologia: ${data.posologia}
-- Duração do Tratamento: ${data.duracao}
-${data.observacoes ? `- Observações: ${data.observacoes}` : ''}
-
-Gere uma receita médica completa e profissional seguindo o padrão brasileiro. Inclua:
-1. Identificação do paciente
-2. Prescrição detalhada dos medicamentos
-3. Posologia clara e específica
-4. Orientações de uso
-5. Duração do tratamento
-6. Recomendações gerais
-
-Use linguagem técnica apropriada e seja claro nas instruções.`;
-
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.7,
-    max_tokens: 1200,
-  });
-
-  return response.choices[0].message.content || '';
+    const result = await response.json();
+    return result.receita;
+  } catch (error: any) {
+    console.error('Erro ao gerar receita:', error);
+    throw new Error(error.message || 'Erro ao gerar receita médica');
+  }
 }
 
-// Função para gerar relatório médico
-export async function generateRelatorio(data: {
-  tipo: string;
-  paciente: string;
-  idade: string;
-  sexo: string;
-  motivoInternacao?: string;
-  evolucao: string;
-  procedimentos: string;
-  condicaoAlta?: string;
-  recomendacoes: string;
-  observacoes?: string;
-}) {
-  const prompt = `Você é um médico gerando um relatório médico profissional.
+export async function generateRelatorio(data: any): Promise<string> {
+  try {
+    const response = await fetch('/api/generate-relatorio', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        reportType: data.tipo,
+        patientInfo: `${data.paciente}, ${data.idade} anos, sexo ${data.sexo}`,
+        clinicalData: `
+          Motivo de internação: ${data.motivoInternacao || 'Não informado'}
+          Evolução clínica: ${data.evolucao}
+          Procedimentos realizados: ${data.procedimentos}
+          Condição de alta: ${data.condicaoAlta || 'Não especificada'}
+          Recomendações: ${data.recomendacoes || 'Nenhuma'}
+          Observações: ${data.observacoes || 'Nenhuma'}
+        `
+      }),
+    });
 
-DADOS DO PACIENTE:
-- Nome: ${data.paciente}
-- Idade: ${data.idade} anos
-- Sexo: ${data.sexo}
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erro ao gerar relatório');
+    }
 
-TIPO DE RELATÓRIO: ${data.tipo}
+    const result = await response.json();
+    return result.relatorio;
+  } catch (error: any) {
+    console.error('Erro ao gerar relatório:', error);
+    throw new Error(error.message || 'Erro ao gerar relatório médico');
+  }
+}
 
-INFORMAÇÕES CLÍNICAS:
-${data.motivoInternacao ? `- Motivo da Internação: ${data.motivoInternacao}` : ''}
-- Evolução Clínica: ${data.evolucao}
-- Procedimentos Realizados: ${data.procedimentos}
-${data.condicaoAlta ? `- Condição na Alta: ${data.condicaoAlta}` : ''}
-- Recomendações: ${data.recomendacoes}
-${data.observacoes ? `- Observações: ${data.observacoes}` : ''}
+export async function sendChatMessage(message: string, conversationHistory?: any[]): Promise<string> {
+  try {
+    const response = await fetch('/api/chat-support', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message,
+        conversationHistory: conversationHistory || []
+      }),
+    });
 
-Gere um relatório médico completo e profissional seguindo o padrão brasileiro. Inclua:
-1. Identificação do paciente
-2. Resumo do caso
-3. Evolução clínica detalhada
-4. Procedimentos e tratamentos realizados
-5. Condição atual do paciente
-6. Recomendações e orientações
-7. Conclusão
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erro ao enviar mensagem');
+    }
 
-Use linguagem técnica apropriada e seja detalhado.`;
-
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.7,
-    max_tokens: 1800,
-  });
-
-  return response.choices[0].message.content || '';
+    const result = await response.json();
+    return result.response;
+  } catch (error: any) {
+    console.error('Erro no chat:', error);
+    throw new Error(error.message || 'Erro ao processar mensagem');
+  }
 }
