@@ -478,12 +478,11 @@ export default function Home() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF6F00] to-[#FFD600] flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-[#0D0D0D]" />
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FF6F00] to-[#FFD600] bg-clip-text text-transparent">
-                {t('app.name')}
-              </h1>
+              <img 
+                src="https://k6hrqrxuu8obbfwn.public.blob.vercel-storage.com/temp/3de79649-ea78-4f6a-9914-2eb900637a56.png" 
+                alt="Medfy Logo" 
+                className="h-20 w-auto"
+              />
             </div>
 
             {/* Search Bar */}
@@ -510,15 +509,35 @@ export default function Home() {
               >
                 <Settings className="w-5 h-5 text-white/70" />
               </button>
-              <button className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all">
-                <Bell className="w-5 h-5 text-white/70" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-[#FF6F00] rounded-full"></span>
-              </button>
+              <div className="relative group">
+                <button className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all">
+                  <Bell className="w-5 h-5 text-white/70" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-[#FF6F00] rounded-full"></span>
+                </button>
+                {/* Dropdown de Notificações */}
+                <div className="absolute right-0 top-full mt-2 w-80 bg-[#0D0D0D] border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="p-4 border-b border-white/10">
+                    <h3 className="font-semibold text-white">Notificações da Medfy</h3>
+                    <p className="text-xs text-white/50 mt-1">Documentos gerados e mensagens do suporte</p>
+                  </div>
+                  <div className="p-4">
+                    <div className="text-center py-8">
+                      <Bell className="w-12 h-12 text-white/20 mx-auto mb-3" />
+                      <p className="text-white/60 text-sm">Sem notificações da Medfy</p>
+                      <p className="text-white/40 text-xs mt-2">
+                        Você receberá notificações quando seus documentos estiverem prontos ou quando o suporte enviar mensagens.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
               {user ? (
                 <>
                   <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5">
                     <User className="w-4 h-4 text-white/70" />
-                    <span className="text-sm text-white/70">{user.email}</span>
+                    <span className="text-sm text-white/70">
+                      {user.user_metadata?.full_name || user.email}
+                    </span>
                   </div>
                   <button 
                     onClick={handleSignOut}

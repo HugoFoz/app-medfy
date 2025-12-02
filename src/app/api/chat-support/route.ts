@@ -2,20 +2,26 @@
 import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(request: Request) {
   try {
     const { message, conversationHistory } = await request.json();
 
-    if (!process.env.OPENAI_API_KEY) {
+    // Verificar se a API Key está configurada
+    const apiKey = process.env.OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      console.error('❌ OPENAI_API_KEY não encontrada nas variáveis de ambiente');
       return NextResponse.json(
-        { error: 'API Key da OpenAI não configurada' },
+        { error: 'API Key da OpenAI não configurada. Verifique o arquivo .env.local' },
         { status: 500 }
       );
     }
+
+    console.log('✅ API Key encontrada, iniciando chamada à OpenAI...');
+
+    const openai = new OpenAI({
+      apiKey: apiKey,
+    });
 
     const messages = [
       {
@@ -45,14 +51,32 @@ Mantenha um tom profissional mas acessível. Seja claro e objetivo nas respostas
       max_tokens: 1500,
     });
 
+    console.log('✅ Resposta recebida da OpenAI');
+
     return NextResponse.json({ 
       response: completion.choices[0].message.content,
       success: true 
     });
-  } catch (error) {
-    console.error('Erro no chat de suporte:', error);
+  } catch (error: any) {
+    console.error('❌ Erro no chat de suporte:', error);
+    
+    // Tratamento específico de erros da OpenAI
+    if (error.status === 401) {
+      return NextResponse.json(
+        { error: 'API Key inválida. Verifique sua chave da OpenAI.' },
+        { status: 401 }
+      );
+    }
+    
+    if (error.status === 429) {
+      return NextResponse.json(
+        { error: 'Limite de requisições excedido. Tente novamente em alguns instantes.' },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
-      { error: 'Erro ao processar mensagem. Verifique sua API Key.' },
+      { error: error.message || 'Erro ao processar mensagem. Tente novamente.' },
       { status: 500 }
     );
   }
